@@ -44,6 +44,16 @@ class HTTPClient(object):
         return None
 
     def get_headers(self,data):
+        #TODO 
+        # If \r\n\r\n reached, stop reading string
+        # Else, append string to list when \r\n is reached.
+            
+
+        headers = []
+        for char in data:
+            pass
+
+
         return None
 
     def get_body(self, data):
@@ -68,8 +78,21 @@ class HTTPClient(object):
         return buffer.decode('utf-8')
 
     def GET(self, url, args=None):
-        code = 500
-        body = ""
+        request = "GET / HTTP/1.1\r\nHost: {}\r\n\r\n".format(url)
+        httpsPort = "443"
+        
+        self.connect(url, httpsPort)
+        self.sendall(request)
+        response = self.recvall(self.socket)
+        self.close()
+
+        code = self.get_code(response)
+        body = self.get_body(response)
+        headers = self.get_headers(response)
+
+        print(body)
+        
+        
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
@@ -90,6 +113,12 @@ if __name__ == "__main__":
         help()
         sys.exit(1)
     elif (len(sys.argv) == 3):
-        print(client.command( sys.argv[2], sys.argv[1] ))
+        #TODO print response 
+        #print(client.command( sys.argv[2], sys.argv[1] ))
+        client.command(sys.argv[2], sys.argv[1])
+
+
+
     else:
+        #TODO print response
         print(client.command( sys.argv[1] ))
