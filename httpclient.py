@@ -58,7 +58,7 @@ class HTTPClient(object):
         return None
     
     def sendall(self, data):
-        self.socket.sendall(data.encode('latin-1'))
+        self.socket.sendall(data.encode('latin-1')) #TODO change back to utf-8
         
     def close(self):
         self.socket.close()
@@ -73,21 +73,31 @@ class HTTPClient(object):
                 buffer.extend(part)
             else:
                 done = not part
-        return buffer.decode('latin-1')
+        return buffer.decode('latin-1') #TODO change back to utf-8
 
     def GET(self, url, args=None):
-        #url = http://www.cs.ualberta.ca/
+        #curl: url= http://www.google.com/ => path = /, host = www.google.com
+        
+
 
         urlParts = parse.urlparse(url) 
-        hostName = urlParts[1]  #hostName = www.cs.ualberta.ca
-        print(urlParts)
+        host = urlParts[1]
+        path = urlParts[2]
+        port = 80
 
-        #ip = socket.gethostbyname(hostName)
-        request = "GET / HTTP/1.1\r\nHost: {}\r\n\r\n".format(hostName)
-        #httpsPort = 443
-        httpPort = 80 #Only need to handle http
+        if ":" in host:
+            hostPartition = host.partition(":") 
+            host = hostPartition[0] #Gets host without port number
+            port = int(hostPartition[2]) #Gets port number
+            
+
+        print(urlParts)
+ 
+        request = "GET {0} HTTP/1.1\r\nHost: {1}\r\n\r\n".format(path, host)
+        print(request)
+       
         
-        self.connect(hostName, httpPort)
+        self.connect(host, port)
         self.sendall(request)
         self.socket.shutdown(socket.SHUT_WR)
         response = self.recvall(self.socket)
@@ -100,7 +110,8 @@ class HTTPClient(object):
         responsePartition = response.partition("\r\n\r\n")
         headers = responsePartition[0] + responsePartition[1]
         body = responsePartition[2]
-        code = headers.partition("\r\n")[0].split(" ")[1]
+        code = int(headers.partition("\r\n")[0].split(" ")[1])
+        print(code)
         
         
     
