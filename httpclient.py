@@ -82,13 +82,39 @@ class HTTPClient(object):
 
         urlParts = parse.urlparse(url) 
         host = urlParts[1]
-        path = urlParts[2]
+        path = urlParts[2] 
         port = 80
+
+
+       
+
+        '''
+        Depending on the format of the url, it will somtimes be
+        split incorrectly.
+        The check code below fixes this.
+
+        Ex: url = coolbears.ca -->
+            After url parse: host = "", path = "coolbears.ca" -->
+            After code below: host = "coolbears.ca", path = "/"
+        '''
+        if host == "":
+            host = path
+            path = "/"
+
+        if path == "":
+            path = "/"
 
         if ":" in host:
             hostPartition = host.partition(":") 
             host = hostPartition[0] #Gets host without port number
             port = int(hostPartition[2]) #Gets port number
+
+        #TODO see if needed
+        '''
+        for i in range(3,6):
+            if not urlparts[i] == "":
+                path = path + "/" + urlParts[i]
+        '''
             
 
         print(urlParts)
