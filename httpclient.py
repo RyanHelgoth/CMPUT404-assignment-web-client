@@ -77,7 +77,7 @@ class HTTPClient(object):
 
     def GET(self, url, args=None):
         #curl: url= http://www.google.com/ => path = /, host = www.google.com
-        
+        print("ARGS: ", args)
 
 
         urlParts = parse.urlparse(url) 
@@ -109,7 +109,7 @@ class HTTPClient(object):
             host = hostPartition[0] #Gets host without port number
             port = int(hostPartition[2]) #Gets port number
 
-        #TODO see if needed
+        #TODO finish this code 
         '''
         for i in range(3,6):
             if not urlparts[i] == "":
@@ -117,10 +117,10 @@ class HTTPClient(object):
         '''
             
 
-        print(urlParts)
+        print(urlParts) #TODO remove
  
-        request = "GET {0} HTTP/1.1\r\nHost: {1}\r\n\r\n".format(path, host)
-        print(request)
+        request = "GET {0} HTTP/1.1\r\nHost: {1}\r\nConnection: close\r\n\r\n".format(path, host)
+        print(request) #TODO remove
        
         
         self.connect(host, port)
@@ -129,30 +129,110 @@ class HTTPClient(object):
         response = self.recvall(self.socket)
         self.close()
 
-        #code = self.get_code(response)
-        #body = self.get_body(response)
-        #headers = self.get_headers(response)
 
         responsePartition = response.partition("\r\n\r\n")
         headers = responsePartition[0] + responsePartition[1]
         body = responsePartition[2]
         code = int(headers.partition("\r\n")[0].split(" ")[1])
-        print(code)
-        
-        
-    
-        #body = response.split("\r\n") #TODO remove when done testing
-        #print("CODE: " + code)
-        #print("HEADERS:\n" + headers)
-        #print("BODY:\n" + body)
-        
-        print(response)
+
+        print(body)
 
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
-        code = 500
-        body = ""
+        print("ARGS: ", args)
+        
+        urlParts = parse.urlparse(url) 
+        host = urlParts[1]
+        path = urlParts[2] 
+        port = 80
+
+
+        '''
+        Depending on the format of the url, it will somtimes be
+        split incorrectly.
+        The check code below fixes this.
+
+        Ex: url = coolbears.ca -->
+            After url parse: host = "", path = "coolbears.ca" -->
+            After code below: host = "coolbears.ca", path = "/"
+        '''
+        if host == "":
+            host = path
+            path = "/"
+
+        if path == "":
+            path = "/"
+
+        if ":" in host:
+            hostPartition = host.partition(":") 
+            host = hostPartition[0] #Gets host without port number
+            port = int(hostPartition[2]) #Gets port number
+
+        #TODO finish this code 
+        '''
+        for i in range(3,6):
+            if not urlparts[i] == "":
+                path = path + "/" + urlParts[i]
+        '''
+            
+        length = 0 #temp
+        print(urlParts) #TODO remove
+
+        headers = [
+            "POST {} HTTP/1.1\r\n".format(path),
+            "Host: {}\r\n".format(host),
+            "Content-Type: application/x-form-urlencoded; charset=UTF-8\r\n",
+            "Content-Length: {}\r\n".format(length),
+            "Connection: close\r\n",
+            "\r\n"
+        ]
+        
+        request = ""
+        
+        for header in headers:
+            request += header
+        
+        if not args is None:
+            vals = []
+            
+            for arg in args:
+                
+                val = "{0}={1}&".format(arg, args[arg])
+                #val = re.escape(val)
+                print("Val: ", val)
+                #https://stackoverflow.com/a/30686735 #TODO cite properly
+                length += len(val.encode("latin-1")) #TODO change encoding when done
+                vals.append(val)
+
+            for val in vals:
+                request += val
+
+        
+        
+ 
+        #request = "POST {0} HTTP/1.1\r\nHost: {1}\r\nContent-Type: application/x-form-urlencoded; charset=UTF-8\r\nContent-Length: {2}\r\nConnection: close\r\n\r\n".format(path, host, length)
+        print(request) #TODO remove
+       
+        
+        self.connect(host, port)
+        self.sendall(request)
+        self.socket.shutdown(socket.SHUT_WR)
+        response = self.recvall(self.socket)
+        self.close()
+
+
+        responsePartition = response.partition("\r\n\r\n")
+        headers = responsePartition[0] + responsePartition[1]
+        body = responsePartition[2]
+        code = int(headers.partition("\r\n")[0].split(" ")[1])
+
+        print(body)
+        
+
+
+
+
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
@@ -161,9 +241,6 @@ class HTTPClient(object):
         else:
             return self.GET( url, args )
 
-    def cleanUrl(self, url):
-        #Return url and https boolean
-        return
     
 if __name__ == "__main__":
     client = HTTPClient()
@@ -172,122 +249,43 @@ if __name__ == "__main__":
         help()
         sys.exit(1)
     elif (len(sys.argv) == 3):
-        #TODO print response 
         #print(client.command( sys.argv[2], sys.argv[1] ))
         client.command(sys.argv[2], sys.argv[1])
 
 
 
     else:
-        #TODO print response
         print(client.command( sys.argv[1] ))
 
 
-#Test run
+#Test POST run
 
 '''
-python3 freetests.py
-HTTP UP!
-
-E/usr/lib/python3.6/unittest/case.py:633: ResourceWarning: unclosed <socket.socket fd=4, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('0.0.0.0', 0)>
-  outcome.errors.clear()
-FEEAn Exception was thrown for http://www.cs.ualberta.ca/
-FSending POST!
-FFHTTP Shutdown in tearDown
-
-HTTP has been shutdown!
+.Sending POST!
+ARGS:  {'a': 'aaaaaaaaaaaaa', 'b': 'bbbbbbbbbbbbbbbbbbbbbb', 'c': 'c', 'd': '012345\r67890\n2321321\n\r'}
+ParseResult(scheme='http', netloc='127.0.0.1:27606', path='/post_echoer', params='', query='', fragment='')
+POST /post_echoer HTTP/1.1
+Host: 127.0.0.1
+Content-Type: application/x-form-urlencoded; charset=UTF-8
+Content-Length: 10
+Connection: close
 
 
-======================================================================
-ERROR: test404GET (__main__.TestHTTPClient)
-Test against 404 errors
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "freetests.py", line 162, in test404GET
-    req = http.GET("http://%s:%d/49872398432" % (BASEHOST,BASEPORT) )
-  File "/home/student/Assignments/CMPUT404-assignment-web-client/httpclient.py", line 83, in GET
-    self.connect(url, httpPort)
-  File "/home/student/Assignments/CMPUT404-assignment-web-client/httpclient.py", line 40, in connect
-    self.socket.connect((host, port))
-socket.gaierror: [Errno -2] Name or service not known
-
-======================================================================
-ERROR: testGET (__main__.TestHTTPClient)
-Test HTTP GET
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "freetests.py", line 180, in testGET
-    req = http.GET( url )
-  File "/home/student/Assignments/CMPUT404-assignment-web-client/httpclient.py", line 83, in GET
-    self.connect(url, httpPort)
-  File "/home/student/Assignments/CMPUT404-assignment-web-client/httpclient.py", line 40, in connect
-    self.socket.connect((host, port))
-socket.gaierror: [Errno -2] Name or service not known
-
-======================================================================
-ERROR: testGETHeaders (__main__.TestHTTPClient)
-Test HTTP GET Headers
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "freetests.py", line 192, in testGETHeaders
-    req = http.GET( url )
-  File "/home/student/Assignments/CMPUT404-assignment-web-client/httpclient.py", line 83, in GET
-    self.connect(url, httpPort)
-  File "/home/student/Assignments/CMPUT404-assignment-web-client/httpclient.py", line 40, in connect
-    self.socket.connect((host, port))
-socket.gaierror: [Errno -2] Name or service not known
-
-======================================================================
-FAIL: test404POST (__main__.TestHTTPClient)
-Test against 404 errors
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "freetests.py", line 172, in test404POST
-    self.assertTrue(req.code == 404)
-AssertionError: False is not true
-
-======================================================================
-FAIL: testInternetGets (__main__.TestHTTPClient)
-Test HTTP Get in the wild, these webservers are far less
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "freetests.py", line 223, in testInternetGets
-    req = http.GET( url )
-socket.gaierror: [Errno -2] Name or service not known
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "freetests.py", line 226, in testInternetGets
-    self.assertTrue( False, "An Exception was thrown for %s %s" % (url,e))
-AssertionError: False is not true : An Exception was thrown for http://www.cs.ualberta.ca/ [Errno -2] Name or service not known
-
-======================================================================
-FAIL: testPOST (__main__.TestHTTPClient)
-Test HTTP POST with an echo server
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "freetests.py", line 250, in testPOST
-    self.assertTrue(req.code == 200)
-AssertionError: False is not true
-
-======================================================================
-FAIL: testPOSTHeaders (__main__.TestHTTPClient)
-Test HTTP POST Headers
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "freetests.py", line 205, in testPOSTHeaders
-    self.assertTrue(req.code == 200,"Code is %s but I wanted a 200 OK" % req.code)
-AssertionError: False is not true : Code is 500 but I wanted a 200 OK
-
-----------------------------------------------------------------------
-Ran 7 tests in 2.520s
-
-FAILED (failures=4, errors=3)
-
-
+127.0.0.1 - - [05/Feb/2022 17:28:10] "POST /post_echoer HTTP/1.1" 200 -
+{}
+Test Post Body: [{}]
+<class 'dict'>
+EARGS:  None
+ParseResult(scheme='http', netloc='127.0.0.1:27606', path='/abcdef/gjkd/dsadas', params='', query='', fragment='')
+POST /abcdef/gjkd/dsadas HTTP/1.1
+Host: 127.0.0.1
+Content-Type: application/x-form-urlencoded; charset=UTF-8
+Content-Length: 10
+Connection: close
 
 
 
 
 '''
+
+

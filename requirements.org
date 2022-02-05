@@ -17,23 +17,23 @@
 
 ** User Stories
    - [x] As a user I want to GET from URLs
-   - [] As a user I want to GET from URLs that use virtualhosting
-   - [] As a user I want to POST to URLs
-   - [] As a user I want to POST from URLs that use virtualhosting
+   - [x] As a user I want to GET from URLs that use virtualhosting
+   - [x] As a user I want to POST to URLs
+   - [x] As a user I want to POST from URLs that use virtualhosting
    - [x] As a user when I GET or POST I want the result printed to stdout
    - [x] As a developer when I GET or POST I want the result returned as
      a HTTPResponse object
 
 ** Requirements
    - [x] Implement basic HTTP GET
-   - [ ] Implement basic HTTP POST
+   - [x] Implement basic HTTP POST
    - [ ] The httpclient can pass all the tests in freetests.py
    - [ ] The webserver can pass all the tests in not-free-tests.py
      (you don't have this one! it can change -- but it will be fair to the user stories/requirements)
    - [ ] HTTP POST can post vars
-   - [ ] HTTP POST handles at least Content-Type:
+   - [x] HTTP POST handles at least Content-Type:
      application/x-www-form-urlencoded
-   - [ ] httpclient can handle 404 requests and 200 requests
+   - [x] httpclient can handle 404 requests and 200 requests
 
 ** Restrictions
    - [x] Use Python 3.6 (3.6.7 is preferred)
