@@ -58,7 +58,7 @@ class HTTPClient(object):
         return None
     
     def sendall(self, data):
-        self.socket.sendall(data.encode('latin-1')) #TODO change back to utf-8
+        self.socket.sendall(data.encode('utf-8')) #TODO change back to utf-8
         
     def close(self):
         self.socket.close()
@@ -73,10 +73,9 @@ class HTTPClient(object):
                 buffer.extend(part)
             else:
                 done = not part
-        return buffer.decode('latin-1') #TODO change back to utf-8
+        return buffer.decode('utf-8') #TODO change back to utf-8
 
     def GET(self, url, args=None):
-        #curl: url= http://www.google.com/ => path = /, host = www.google.com
         print("ARGS: ", args)
 
 
@@ -84,9 +83,6 @@ class HTTPClient(object):
         host = urlParts[1]
         path = urlParts[2] 
         port = 80
-
-
-       
 
         '''
         Depending on the format of the url, it will somtimes be
@@ -176,8 +172,24 @@ class HTTPClient(object):
                 path = path + "/" + urlParts[i]
         '''
             
-        length = 0 #temp
+        length = 0 
         print(urlParts) #TODO remove
+
+        vals = []
+        request = ""
+    
+        
+        if not args is None:
+            
+            for arg in args:
+                
+                val = "{0}={1}&".format(arg, args[arg])
+                #val = str(val.encode("unicode_escape"))[2:-1]
+                #"utf-8"
+                print("Val: ", val)
+                #https://stackoverflow.com/a/30686735 #TODO cite properly
+                length += len(val.encode("utf-8")) #TODO fix this line
+                vals.append(val)
 
         headers = [
             "POST {} HTTP/1.1\r\n".format(path),
@@ -187,33 +199,12 @@ class HTTPClient(object):
             "Connection: close\r\n",
             "\r\n"
         ]
-        
-        request = ""
-        
+
         for header in headers:
             request += header
-        
-        if not args is None:
-            vals = []
-            
-            for arg in args:
-                
-                val = "{0}={1}&".format(arg, args[arg])
-                #val = re.escape(val)
-                print("Val: ", val)
-                #https://stackoverflow.com/a/30686735 #TODO cite properly
-                length += len(val.encode("latin-1")) #TODO change encoding when done
-                vals.append(val)
 
-            for val in vals:
-                request += val
-
-        
-        
- 
-        #request = "POST {0} HTTP/1.1\r\nHost: {1}\r\nContent-Type: application/x-form-urlencoded; charset=UTF-8\r\nContent-Length: {2}\r\nConnection: close\r\n\r\n".format(path, host, length)
-        print(request) #TODO remove
-       
+        for val in vals:
+            request += val
         
         self.connect(host, port)
         self.sendall(request)
@@ -229,10 +220,6 @@ class HTTPClient(object):
 
         print(body)
         
-
-
-
-
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
@@ -249,43 +236,10 @@ if __name__ == "__main__":
         help()
         sys.exit(1)
     elif (len(sys.argv) == 3):
-        #print(client.command( sys.argv[2], sys.argv[1] ))
         client.command(sys.argv[2], sys.argv[1])
-
-
-
     else:
-        print(client.command( sys.argv[1] ))
+        client.command( sys.argv[1] )
 
 
-#Test POST run
-
-'''
-.Sending POST!
-ARGS:  {'a': 'aaaaaaaaaaaaa', 'b': 'bbbbbbbbbbbbbbbbbbbbbb', 'c': 'c', 'd': '012345\r67890\n2321321\n\r'}
-ParseResult(scheme='http', netloc='127.0.0.1:27606', path='/post_echoer', params='', query='', fragment='')
-POST /post_echoer HTTP/1.1
-Host: 127.0.0.1
-Content-Type: application/x-form-urlencoded; charset=UTF-8
-Content-Length: 10
-Connection: close
-
-
-127.0.0.1 - - [05/Feb/2022 17:28:10] "POST /post_echoer HTTP/1.1" 200 -
-{}
-Test Post Body: [{}]
-<class 'dict'>
-EARGS:  None
-ParseResult(scheme='http', netloc='127.0.0.1:27606', path='/abcdef/gjkd/dsadas', params='', query='', fragment='')
-POST /abcdef/gjkd/dsadas HTTP/1.1
-Host: 127.0.0.1
-Content-Type: application/x-form-urlencoded; charset=UTF-8
-Content-Length: 10
-Connection: close
-
-
-
-
-'''
 
 
