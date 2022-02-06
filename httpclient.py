@@ -41,24 +41,20 @@ class HTTPClient(object):
         return None
 
     def get_code(self, data):
-        return None
-
-    def get_headers(self,data):
-        #TODO 
-        # If \r\n\r\n reached, stop reading string
-        # Else, append string to list when \r\n is reached.
-            
-
+        headers = self.get_headers(data)
+        return int(headers.partition("\r\n")[0].split(" ")[1])
         
-
-
-        return None
-
+    def get_headers(self, data):
+        return data[0] + data[1]
+        
     def get_body(self, data):
-        return None
-    
+        return data[2]
+        
+    def getResponseParts(self, response):
+        return response.partition("\r\n\r\n")
+
     def sendall(self, data):
-        self.socket.sendall(data.encode('utf-8')) #TODO change back to utf-8
+        self.socket.sendall(data.encode('utf-8')) 
         
     def close(self):
         self.socket.close()
@@ -73,15 +69,14 @@ class HTTPClient(object):
                 buffer.extend(part)
             else:
                 done = not part
-        return buffer.decode('utf-8') #TODO change back to utf-8
+        return buffer.decode('utf-8') 
 
-    def GET(self, url, args=None):
-        print("ARGS: ", args)
-
-
+    def getRequestInfo(self, url):
         urlParts = parse.urlparse(url) 
         host = urlParts[1]
         path = urlParts[2] 
+        query = urlParts[4]
+        fragment = urlParts[5]
         port = 80
 
         '''
@@ -105,90 +100,36 @@ class HTTPClient(object):
             host = hostPartition[0] #Gets host without port number
             port = int(hostPartition[2]) #Gets port number
 
-        #TODO finish this code 
-        '''
-        for i in range(3,6):
-            if not urlparts[i] == "":
-                path = path + "/" + urlParts[i]
-        '''
-            
+        if not query == "":
+            path = path + "?" + query
 
-        print(urlParts) #TODO remove
- 
-        request = "GET {0} HTTP/1.1\r\nHost: {1}\r\nConnection: close\r\n\r\n".format(path, host)
-        print(request) #TODO remove
-       
-        
+        if not fragment == "":
+            path = path + "#" + fragment
+        return host, path, port
+    
+    def getResponse(self, host, port, request):
         self.connect(host, port)
         self.sendall(request)
         self.socket.shutdown(socket.SHUT_WR)
         response = self.recvall(self.socket)
         self.close()
+        return response
 
-
-        responsePartition = response.partition("\r\n\r\n")
-        headers = responsePartition[0] + responsePartition[1]
-        body = responsePartition[2]
-        code = int(headers.partition("\r\n")[0].split(" ")[1])
-
-        print(body)
-
-        return HTTPResponse(code, body)
-
-    def POST(self, url, args=None):
-        print("ARGS: ", args)
-        
-        urlParts = parse.urlparse(url) 
-        host = urlParts[1]
-        path = urlParts[2] 
-        port = 80
-
-
-        '''
-        Depending on the format of the url, it will somtimes be
-        split incorrectly.
-        The check code below fixes this.
-
-        Ex: url = coolbears.ca -->
-            After url parse: host = "", path = "coolbears.ca" -->
-            After code below: host = "coolbears.ca", path = "/"
-        '''
-        if host == "":
-            host = path
-            path = "/"
-
-        if path == "":
-            path = "/"
-
-        if ":" in host:
-            hostPartition = host.partition(":") 
-            host = hostPartition[0] #Gets host without port number
-            port = int(hostPartition[2]) #Gets port number
-
-        #TODO finish this code 
-        '''
-        for i in range(3,6):
-            if not urlparts[i] == "":
-                path = path + "/" + urlParts[i]
-        '''
-            
+    def constructPostRequest(self, args, path, host):
         length = 0 
-        print(urlParts) #TODO remove
-
         vals = []
         request = ""
     
-        
         if not args is None:
-            
             for arg in args:
-                
                 val = "{0}={1}&".format(arg, args[arg])
-                #val = str(val.encode("unicode_escape"))[2:-1]
-                #"utf-8"
-                print("Val: ", val)
-                #https://stackoverflow.com/a/30686735 #TODO cite properly
-                length += len(val.encode("utf-8")) #TODO fix this line
+                ''' 
+                Link: https://stackoverflow.com/a/30686735
+                Author: Kris
+                Date: Jun 6 '15 at 19:37
+                License: SA 3.0
+                '''
+                length += len(val.encode("utf-8")) 
                 vals.append(val)
 
         headers = [
@@ -205,21 +146,35 @@ class HTTPClient(object):
 
         for val in vals:
             request += val
+
+        return request 
+
+    def GET(self, url, args=None):
+        host, path, port = self.getRequestInfo(url)
         
-        self.connect(host, port)
-        self.sendall(request)
-        self.socket.shutdown(socket.SHUT_WR)
-        response = self.recvall(self.socket)
-        self.close()
-
-
-        responsePartition = response.partition("\r\n\r\n")
-        headers = responsePartition[0] + responsePartition[1]
-        body = responsePartition[2]
-        code = int(headers.partition("\r\n")[0].split(" ")[1])
+        request = "GET {0} HTTP/1.1\r\nHost: {1}\r\nConnection: close\r\n\r\n".format(path, host)
+        
+        response = self.getResponse(host, port, request)
+        responsePartition = self.getResponseParts(response)
+        
+        body = self.get_body(responsePartition)
+        code = self.get_code(responsePartition)
 
         print(body)
+        return HTTPResponse(code, body)
+
+    def POST(self, url, args=None):
+        host, path, port = self.getRequestInfo(url)
+            
+        request = self.constructPostRequest(args, path, host)
         
+        response = self.getResponse(host, port, request)
+        responsePartition = self.getResponseParts(response)
+        
+        body = self.get_body(responsePartition)
+        code = self.get_code(responsePartition)
+
+        print(body)
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
@@ -227,8 +182,7 @@ class HTTPClient(object):
             return self.POST( url, args )
         else:
             return self.GET( url, args )
-
-    
+   
 if __name__ == "__main__":
     client = HTTPClient()
     command = "GET"
@@ -238,7 +192,7 @@ if __name__ == "__main__":
     elif (len(sys.argv) == 3):
         client.command(sys.argv[2], sys.argv[1])
     else:
-        client.command( sys.argv[1] )
+        client.command(sys.argv[1])
 
 
 
